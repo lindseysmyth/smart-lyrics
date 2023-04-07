@@ -1,0 +1,2 @@
+All the CSV files for our data go here
+We scrape and build these CSVs using Genius API and stuff in src/datasets.py
