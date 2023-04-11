@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 class LSTM_VAE(nn.Module):
+    # from paper: (artist) genre_embed_size: 50
     def __init__(self, vocab_size, seq_len, embed_size, hidden_size, latent_size, genre_embed_size):
         super(LSTM_VAE, self).__init__()
 
@@ -15,6 +16,7 @@ class LSTM_VAE(nn.Module):
         self.embedding = nn.Embedding(self.vocab_size, self.embed_size)
 
         # Encoder
+        # from paper: bidirectional, 100 hidden units
         self.encoder = nn.LSTM(self.embed_size, self.hidden_size, batch_first=True)
         self.fc_mu = nn.Linear(self.hidden_size, self.latent_size)
         self.fc_logvar = nn.Linear(self.hidden_size, self.latent_size)
@@ -77,7 +79,17 @@ def train(model, train_loader, epochs, lr=0.001):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     for epoch in range(epochs):
-        pass
+        total_loss = 0
+        count = 0
+        for x, genre_embedding in train_loader:
+            optimizer.zero_grad()
+            output, mu, logvar = model.forward(x, genre_embedding)
+            loss = model.vae_loss(output, x, mu, logvar)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+            count += 1
+        print('{:>12s} {:>7.5f}'.format('Train loss:', total_loss/count))
 
 
 def test(model, val_loader):
