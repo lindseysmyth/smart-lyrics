@@ -95,9 +95,12 @@ def train(model, train_loader, epochs, lr=0.001):
 def test(model, val_loader):
     model.eval()
     # test the model on validation set and return accuracy/F1 score or something
+    for x, genre_embedding in val_loader:
+        output, mu, logvar = model.forward(x, genre_embedding)
     # TODO
 
 
+# we have to sample the latent space to generate lyrics
 def inference(model, genre):
     model.eval()
     # genre is a torch tensor of shape (1, genre_embed_size) where each embedding is the learned vector for that song
