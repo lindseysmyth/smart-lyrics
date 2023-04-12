@@ -66,8 +66,8 @@ class LSTM_VAE(nn.Module):
         return nn.CrossEntropyLoss()(op, x)
 
     def vae_loss(self, op, x, mu, logvar):
-        recon_loss = self.reconstruction_loss(op, x)
-        kl_loss = self.kl_divergence(mu, logvar)
+        recon_loss = self.reconstruction_loss(op, x) # are words the same
+        kl_loss = self.kl_divergence(mu, logvar) # difference between 2 distributions, form of a regularization. prevents overfitting
         return recon_loss + kl_loss
     
 
@@ -94,10 +94,15 @@ def train(model, train_loader, epochs, lr=0.001):
 
 def test(model, val_loader):
     model.eval()
+    total_loss = 0
+    count = 0
     # test the model on validation set and return accuracy/F1 score or something
     for x, genre_embedding in val_loader:
-        output, mu, logvar = model.forward(x, genre_embedding)
-    # TODO
+        output, mu, logvar = model.forward(x, genre_embedding) 
+        loss = model.vae_loss(output, x, mu, logvar)
+        total_loss += loss
+        count += genre_embedding.shape[0] # TODO: get batch_size?? idk if this is right
+    print('{:>12s} {:>7.5f}'.format('Testing loss:', total_loss/count))
 
 
 # we have to sample the latent space to generate lyrics
@@ -108,3 +113,30 @@ def inference(model, genre):
     # return a torch tensor of shape (1, seq_len) where each element is an integer/word index
     # this is the generated song
     # TODO
+
+
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+from torch.utils.data import Dataset
+class Songs(Dataset):
+    # len(lyrics) = len(genre_gender) = number of songs
+    def __init__(self, lyrics, genre_gender):
+        self.lyrics = torch.from_numpy(lyrics)
+        self.genre_gender = torch.from_numpy(genre_gender)
+
+    def __getitem__(self, index):
+        lyric = self.lyrics[index]
+        label = self.genre_gender[index]
+        return lyric, label
+
+    def __len__(self):
+        return len(self.lyrics)
+
+# data_x: lyrics
+# data_y: genre+gender label (n genres: data_y values will be [0, 2n-1])
+def create_loaders(data_x, data_y, batch_size):
+    train_x, test_x, train_y, test_y = train_test_split(data_x, data_y, test_size=0.2, random_state=42)
+    train_loader = torch.utils.data.DataLoader(Songs(train_x, train_y), batch_size)
+    test_loader = torch.utils.data.DataLoader(Songs(test_x, test_y), batch_size)
+    return train_loader, test_loader
