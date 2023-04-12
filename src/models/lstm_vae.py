@@ -22,8 +22,9 @@ class LSTM_VAE(nn.Module):
         self.fc_logvar = nn.Linear(self.hidden_size, self.latent_size)
 
         # Decoder
-        self.fc_z = nn.Linear(self.latent_size + self.genre_embed_size, self.hidden_size)
-        self.decoder = nn.LSTM(self.latent_size + self.genre_embed_size, self.hidden_size, batch_first=True)
+        self.fc_z = nn.Linear(self.latent_size + self.genre_embed_size, self.hidden_size//2)
+        self.decoder = nn.LSTM(self.hidden_size//2, self.hidden_size, batch_first=True)
+        # Might need to make self.hidden_size//2 bigger, not sure
         self.fc_out = nn.Linear(self.hidden_size, self.vocab_size)
 
     def encode(self, x):
@@ -33,6 +34,7 @@ class LSTM_VAE(nn.Module):
         mu = self.fc_mu(h)
         logvar = self.fc_logvar(h)
         return mu, logvar
+    
     
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5*logvar)
